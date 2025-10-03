@@ -1,13 +1,25 @@
-# Usamos una imagen base de OpenJDK 17
-FROM openjdk:17-jdk-alpine
+# Stage 1: Construir el JAR con Maven
+FROM maven:3.9.6-eclipse-temurin-17 AS build
 
 # Directorio de trabajo dentro del contenedor
 WORKDIR /app
 
-# Copiamos el JAR generado por Maven al contenedor
-COPY target/*.jar app.jar
+# Copiamos los archivos de proyecto al contenedor
+COPY pom.xml .
+COPY src ./src
 
-# Exponemos el puerto en el que corre Spring Boot
+# Construimos el proyecto y generamos el JAR
+RUN mvn clean package -DskipTests
+
+# Stage 2: Crear imagen ligera con el JAR
+FROM eclipse-temurin:17-jdk-alpine
+
+WORKDIR /app
+
+# Copiamos el JAR desde la etapa anterior
+COPY --from=build /app/target/*.jar app.jar
+
+# Exponemos el puerto de Spring Boot
 EXPOSE 8080
 
 # Comando para ejecutar la aplicación
